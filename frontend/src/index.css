@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Light theme - Koda color palette */
+  
+  /* Backgrounds */
+  --color-koda-bg: #f8f9fa;
+  --color-koda-surface: #ffffff;
+  --color-koda-surface-hover: #f1f3f4;
+  --color-koda-border: #e1e4e8;
+  
+  /* Text */
+  --color-koda-text: #1f2937;
+  --color-koda-text-muted: #6b7280;
+  
+  /* Brand */
+  --color-koda-accent: #00b894;
+  --color-koda-accent-hover: #00a383;
+  --color-koda-accent-light: #e6f7f4;
+  
+  /* Semantic */
+  --color-koda-error: #dc2626;
+  --color-koda-warning: #f59e0b;
+  --color-koda-info: #3b82f6;
+}
+
+/* Dark theme overrides */
+.dark {
+  --color-koda-bg: #0d1117;
+  --color-koda-surface: #161b22;
+  --color-koda-surface-hover: #21262d;
+  --color-koda-border: #30363d;
+  --color-koda-text: #f0f6fc;
+  --color-koda-text-muted: #8b949e;
+  --color-koda-accent-light: #1a3a32;
+}
+
+/* Smooth transition when toggling theme */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
