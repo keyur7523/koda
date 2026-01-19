@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "koda"
+version = "0.1.0"
+description = "AI coding agent that understands your codebase"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "anthropic>=0.18.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "tree-sitter>=0.20.0",
+    "tree-sitter-python>=0.20.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "websockets>=12.0",
+]
+
+[project.scripts]
+koda = "src.cli.commands:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
