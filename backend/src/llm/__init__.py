@@ -1,1 +1,1 @@
-from .client import get_provider, chat
+from .client import get_provider, chat, chat_with_tools

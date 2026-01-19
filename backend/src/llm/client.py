@@ -23,3 +23,7 @@ def chat(prompt: str) -> str:
     """Convenience function to chat using the configured provider."""
     provider = get_provider()
     return provider.chat(prompt)
+
+def chat_with_tools(messages: list, tools: list) -> dict:
+    provider = get_provider()
+    return provider.chat_with_tools(messages, tools)

@@ -1,5 +1,6 @@
 import typer
 from pathlib import Path
+from ..agent.orchestrator import Agent
 
 app = typer.Typer()
 
@@ -20,7 +21,8 @@ def init():
 
 @app.command()
 def run(task: str):
-    typer.echo(f"Received task: {task}")
+    agent = Agent()
+    agent.run(task)
 
 
 if __name__ == "__main__":
