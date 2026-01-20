@@ -543,6 +543,26 @@ async def login(
 class ApiKeyRequest(BaseModel):
     api_key: str
 
+
+def _validate_anthropic_key(key: str) -> bool:
+    """Validate Anthropic API key format.
+
+    Valid formats:
+    - sk-ant-api03-... (newer format)
+    - sk-ant-... (older format)
+    """
+    key = key.strip()
+    if not key:
+        return False
+    if not key.startswith("sk-ant-"):
+        return False
+    if len(key) < 20 or len(key) > 200:
+        return False
+    # Only allow alphanumeric, hyphens, and underscores
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+    return all(c in allowed_chars for c in key)
+
+
 @router.post("/api-key")
 async def save_api_key(
     request: ApiKeyRequest,
@@ -550,10 +570,18 @@ async def save_api_key(
     db: Session = Depends(get_db),
 ):
     """Save user's Anthropic API key (encrypted at rest)."""
+    # Validate API key format
+    api_key = request.api_key.strip()
+    if not _validate_anthropic_key(api_key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid API key format. Anthropic keys start with 'sk-ant-'"
+        )
+
     # Encrypt the API key before storing
-    user.anthropic_api_key = encrypt(request.api_key)
+    user.anthropic_api_key = encrypt(api_key)
     db.commit()
-    
+
     return {"success": True}
 
 
@@ -594,20 +622,33 @@ async def delete_account(
 def get_user_api_key(user: User, provider: str = "anthropic") -> Optional[str]:
     """
     Get decrypted API key for a user.
-    
+
     SECURITY: Only call this when making actual API calls to LLM providers.
     Never log or return this value to the frontend.
-    
+
     Args:
         user: The user object from database
         provider: "anthropic" or "openai"
-        
+
     Returns:
-        Decrypted API key or None if not set
+        Decrypted API key or None if not set or decryption fails
     """
-    if provider == "anthropic" and user.anthropic_api_key:
-        return decrypt(user.anthropic_api_key)
-    elif provider == "openai" and user.openai_api_key:
-        return decrypt(user.openai_api_key)
+    try:
+        if provider == "anthropic" and user.anthropic_api_key:
+            decrypted = decrypt(user.anthropic_api_key)
+            if decrypted:
+                return decrypted
+            print(f"Warning: Decrypted API key is empty for user {user.id}")
+        elif provider == "openai" and user.openai_api_key:
+            decrypted = decrypt(user.openai_api_key)
+            if decrypted:
+                return decrypted
+            print(f"Warning: Decrypted OpenAI key is empty for user {user.id}")
+    except ValueError as e:
+        # Decryption failed - likely ENCRYPTION_KEY mismatch or missing
+        print(f"Error: Failed to decrypt {provider} API key for user {user.id}: {e}")
+        print("Hint: Check that ENCRYPTION_KEY is set correctly in environment")
+    except Exception as e:
+        print(f"Error: Unexpected error getting API key for user {user.id}: {e}")
     return None
 

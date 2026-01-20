@@ -285,16 +285,29 @@ async def websocket_task(
         
         # Get user's API key - REQUIRED
         user_api_key = get_user_api_key(user, provider="anthropic")
-        
+
         # Require API key to run tasks
         if not user_api_key:
-            await websocket.send_json({
-                "type": "error",
-                "data": {
-                    "message": "Please add your Anthropic API key in Settings to run tasks.",
-                    "code": "API_KEY_REQUIRED"
-                }
-            })
+            # Check if user has a key saved but decryption failed
+            if user.anthropic_api_key:
+                # Key exists in DB but couldn't be decrypted
+                print(f"User {user.id} has encrypted key but decryption returned None")
+                await websocket.send_json({
+                    "type": "error",
+                    "data": {
+                        "message": "Your API key could not be loaded. Please remove and re-add your key in Settings.",
+                        "code": "API_KEY_DECRYPT_FAILED"
+                    }
+                })
+            else:
+                # No key saved at all
+                await websocket.send_json({
+                    "type": "error",
+                    "data": {
+                        "message": "Please add your Anthropic API key in Settings to run tasks.",
+                        "code": "API_KEY_REQUIRED"
+                    }
+                })
             return
         
         # Clone or update repository if repo_url provided

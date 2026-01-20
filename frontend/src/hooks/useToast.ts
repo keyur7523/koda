@@ -1,48 +1,55 @@
-import { toast } from 'sonner'
+import { toast, type ExternalToast } from 'sonner'
+
+interface ToastOptions {
+  description?: string
+  duration?: number
+}
 
 export function useToast() {
   return {
-    success: (message: string) => 
+    success: (message: string, options?: ToastOptions) =>
       toast.success(message, {
-        style: { 
-          background: '#e6f7f4', 
+        ...options,
+        style: {
+          background: '#e6f7f4',
           border: '1px solid #00b894',
-          color: '#1f2937' 
+          color: '#1f2937',
         },
-      }),
-      
-    error: (message: string) => 
-      toast.error(message, {
-        style: { 
-          background: '#fef2f2', 
-          border: '1px solid #dc2626',
-          color: '#1f2937' 
-        },
-      }),
-      
-    info: (message: string) => 
-      toast.info(message, {
-        style: { 
-          background: '#eff6ff', 
-          border: '1px solid #3b82f6',
-          color: '#1f2937' 
-        },
-      }),
+      } as ExternalToast),
 
-    warning: (message: string) => 
-      toast.warning(message, {
-        style: { 
-          background: '#fffbeb', 
-          border: '1px solid #f59e0b',
-          color: '#1f2937' 
+    error: (message: string, options?: ToastOptions) =>
+      toast.error(message, {
+        ...options,
+        style: {
+          background: '#fef2f2',
+          border: '1px solid #dc2626',
+          color: '#1f2937',
         },
-      }),
-      
-    loading: (message: string) => 
-      toast.loading(message),
-      
-    dismiss: (id?: string | number) => 
-      toast.dismiss(id),
+      } as ExternalToast),
+
+    info: (message: string, options?: ToastOptions) =>
+      toast.info(message, {
+        ...options,
+        style: {
+          background: '#eff6ff',
+          border: '1px solid #3b82f6',
+          color: '#1f2937',
+        },
+      } as ExternalToast),
+
+    warning: (message: string, options?: ToastOptions) =>
+      toast.warning(message, {
+        ...options,
+        style: {
+          background: '#fffbeb',
+          border: '1px solid #f59e0b',
+          color: '#1f2937',
+        },
+      } as ExternalToast),
+
+    loading: (message: string) => toast.loading(message),
+
+    dismiss: (id?: string | number) => toast.dismiss(id),
   }
 }
 

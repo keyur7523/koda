@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -6,6 +7,13 @@ from pathlib import Path
 # Database file location
 DB_PATH = Path.home() / ".koda" / "koda.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+# Set secure permissions on the .koda directory (owner-only access)
+# This protects the database containing encrypted API keys
+try:
+    os.chmod(DB_PATH.parent, 0o700)  # rwx------
+except OSError:
+    pass  # May fail on some systems, non-critical
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 

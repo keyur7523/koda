@@ -115,15 +115,25 @@ export function useAgentWebSocket() {
         case 'error':
           setError(data.message)
           updateTaskStatus(historyId, 'error')
-          
-          // Check for auth errors
-          if (data.message?.includes('Authentication') || data.message?.includes('token')) {
+
+          // Handle specific error codes
+          if (data.code === 'API_KEY_DECRYPT_FAILED') {
+            toast.error('API key error', {
+              description: 'Please remove and re-add your API key in Settings.',
+              duration: 8000,
+            })
+          } else if (data.code === 'API_KEY_REQUIRED') {
+            toast.error('API key required', {
+              description: 'Add your Anthropic API key in Settings to run tasks.',
+              duration: 6000,
+            })
+          } else if (data.message?.includes('Authentication') || data.message?.includes('token')) {
             toast.error('Session expired. Please log in again.')
             logout()
           } else {
             toast.error(data.message)
           }
-          
+
           isIntentionallyClosed.current = true
           ws.close()
           break
