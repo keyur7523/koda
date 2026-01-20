@@ -257,10 +257,9 @@ async def websocket_task(
         return
     
     await websocket.accept()
-    print(f"DEBUG: WebSocket accepted for user {user.id}")
 
     # Log authenticated connection
-    print(f"WebSocket authenticated: user_id={user.id}, username={user.username}, has_api_key={bool(user.anthropic_api_key)}")
+    print(f"WebSocket connected: user_id={user.id}, username={user.username}")
     
     try:
         # Receive task from client
@@ -285,9 +284,7 @@ async def websocket_task(
             db.close()
         
         # Get user's API key - REQUIRED
-        print(f"DEBUG: Checking API key for user {user.id}, has_encrypted_key={bool(user.anthropic_api_key)}")
         user_api_key = get_user_api_key(user, provider="anthropic")
-        print(f"DEBUG: get_user_api_key returned: {bool(user_api_key)}")
 
         # Require API key to run tasks
         if not user_api_key:
@@ -402,9 +399,9 @@ async def websocket_task(
         })
         
     except WebSocketDisconnect:
-        print(f"DEBUG: Client disconnected (user: {user.username})")
+        print(f"WebSocket disconnected: user_id={user.id}")
     except Exception as e:
-        print(f"DEBUG: Exception in WebSocket handler: {type(e).__name__}: {e}")
+        print(f"WebSocket error for user {user.id}: {type(e).__name__}: {e}")
         try:
             await websocket.send_json({"type": "error", "data": {"message": str(e)}})
         except Exception:
