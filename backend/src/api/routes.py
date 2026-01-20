@@ -284,7 +284,9 @@ async def websocket_task(
             db.close()
         
         # Get user's API key - REQUIRED
+        print(f"DEBUG: Checking API key for user {user.id}, has_encrypted_key={bool(user.anthropic_api_key)}")
         user_api_key = get_user_api_key(user, provider="anthropic")
+        print(f"DEBUG: get_user_api_key returned: {bool(user_api_key)}")
 
         # Require API key to run tasks
         if not user_api_key:

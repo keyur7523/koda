@@ -9,6 +9,7 @@ from cryptography.fernet import Fernet, InvalidToken
 def _get_fernet() -> Fernet:
     """Get Fernet instance with key from environment."""
     key = os.getenv("ENCRYPTION_KEY")
+    print(f"DEBUG: ENCRYPTION_KEY exists: {bool(key)}, length: {len(key) if key else 0}")
     if not key:
         raise ValueError(
             "ENCRYPTION_KEY environment variable is not set. "
