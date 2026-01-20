@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { 
-  User, Key, Zap, LogOut, Trash2, Eye, EyeOff, 
+  User, Key, LogOut, Trash2, Eye, EyeOff, 
   Check, AlertTriangle, Loader2 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -25,7 +25,6 @@ export function SettingsPage() {
   if (!user || !token) return null
   
   const hasApiKey = user.has_api_key
-  const percentage = (user.tokens_used / user.tokens_limit) * 100
   
   // Handlers
   const handleSaveApiKey = async () => {
@@ -106,25 +105,15 @@ export function SettingsPage() {
               </div>
             </div>
             
-            <div className="pt-2">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
-                ${hasApiKey 
-                  ? 'bg-koda-accent/10 text-koda-accent' 
-                  : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'}`}
-              >
-                {hasApiKey ? (
-                  <>
-                    <Check size={14} />
-                    API Key Connected
-                  </>
-                ) : (
-                  <>
-                    <Zap size={14} />
-                    Free Tier
-                  </>
-                )}
-              </span>
-            </div>
+            {hasApiKey && (
+              <div className="pt-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium
+                              bg-koda-accent/10 text-koda-accent">
+                  <Check size={14} />
+                  API Key Connected
+                </span>
+              </div>
+            )}
           </div>
         </section>
         
@@ -240,42 +229,6 @@ export function SettingsPage() {
             )}
           </AnimatePresence>
         </section>
-        
-        {/* Usage Section (Free Tier only) */}
-        {!hasApiKey && (
-          <section className="bg-koda-surface border border-koda-border rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-koda-text mb-4 flex items-center gap-2">
-              <Zap size={20} className="text-koda-accent" />
-              Usage
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-koda-text-muted">Tokens used</span>
-                <span className="font-medium text-koda-text">
-                  {user.tokens_used.toLocaleString()} / {user.tokens_limit.toLocaleString()}
-                </span>
-              </div>
-              
-              <div className="h-2 bg-koda-bg rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 rounded-full ${
-                    percentage >= 100
-                      ? 'bg-red-500'
-                      : percentage >= 80
-                      ? 'bg-yellow-500'
-                      : 'bg-koda-accent'
-                  }`}
-                  style={{ width: `${Math.min(100, percentage)}%` }}
-                />
-              </div>
-              
-              <p className="text-sm text-koda-text-muted">
-                Add an API key for unlimited usage.
-              </p>
-            </div>
-          </section>
-        )}
         
         {/* Account Section */}
         <section className="bg-koda-surface border border-koda-border rounded-xl p-6">

@@ -8,7 +8,8 @@ from ..tools.registry import get_tool_schemas
 from ..tools.file_ops import set_change_manager
 from ..cli.theme import console, spinner, print_summary
 from ..cli.diff_display import display_staged_changes
-from ..db.token_tracker import TokenTracker
+from ..db.token_tracker import TokenTracker, TokenLimitExceeded
+from ..utils.repo_cache import get_cached_summary, save_summary
 
 
 class Agent:
@@ -48,13 +49,14 @@ class Agent:
         if event in self._callbacks:
             self._callbacks[event](data)
 
-    def _execute_with_tools(self, prompt: str, readonly: bool = False, show_tools: bool = True) -> str:
+    def _execute_with_tools(self, prompt: str, readonly: bool = False, show_tools: bool = True, phase: str = "executing") -> str:
         """Execute a prompt with tool support, handling tool calls in a loop.
         
         Args:
             prompt: The prompt to send to Claude
             readonly: If True, only allow read-only tools (no write_file)
             show_tools: If True, print tool execution details
+            phase: Phase hint for model selection ("understanding", "planning", "executing")
         """
         messages = [{"role": "user", "content": prompt}]
         tools = get_tool_schemas(readonly=readonly)
@@ -64,7 +66,7 @@ class Agent:
             show_tools = False
         
         while True:
-            response = chat_with_tools(messages, tools, api_key=self._api_key, on_usage=self._on_usage)
+            response = chat_with_tools(messages, tools, api_key=self._api_key, on_usage=self._on_usage, phase=phase)
             
             if response.stop_reason == "end_turn":
                 # Extract final text response
@@ -120,6 +122,22 @@ class Agent:
         # Create change manager for staging file writes
         self._change_manager = ChangeManager()
         
+        try:
+            self._run_task(task)
+        except TokenLimitExceeded as e:
+            # Token limit exceeded during execution
+            self._state.phase = Phase.ERROR
+            self._state.error = str(e)
+            self._emit("phase_change", self._state.phase.value)
+            self._emit("error", str(e))
+            if not self._headless:
+                console.print(f"\n[error]✗ {str(e)}[/error]")
+            # Disable change staging
+            set_change_manager(None)
+            return
+    
+    def _run_task(self, task: str) -> None:
+        """Internal method that runs the task (can raise TokenLimitExceeded)."""
         # === UNDERSTANDING PHASE ===
         self._state.phase = Phase.UNDERSTANDING
         self._state.task = task
@@ -128,20 +146,38 @@ class Agent:
         if not self._headless:
             console.print(f"\n[heading]Understanding task:[/heading] {task}\n")
         
-        understanding_prompt = f"""The user wants to: {task}
+        # Check for cached summary (token optimization)
+        cached_summary = None
+        if self._repo_path:
+            cached_summary = get_cached_summary(self._repo_path)
+        
+        if cached_summary:
+            summary = cached_summary
+            if not self._headless:
+                console.print("[muted]Using cached codebase summary[/muted]")
+                console.print(f"\n[heading]Codebase Summary:[/heading]")
+                console.print(f"[muted]{summary}[/muted]\n")
+            self._emit("cache_hit", True)
+        else:
+            understanding_prompt = f"""The user wants to: {task}
 
 Explore the codebase to understand its structure.
 Use list_directory and read_file to understand what exists.
 Do NOT create or modify any files - just observe.
 Then summarize what you found."""
-        
-        if self._headless:
-            summary = self._execute_with_tools(understanding_prompt, readonly=True, show_tools=False)
-        else:
-            with spinner("Exploring codebase..."):
-                summary = self._execute_with_tools(understanding_prompt, readonly=True, show_tools=False)
-            console.print(f"\n[heading]Codebase Summary:[/heading]")
-            console.print(f"[muted]{summary}[/muted]\n")
+            
+            # Use Haiku for understanding phase (cheaper, faster)
+            if self._headless:
+                summary = self._execute_with_tools(understanding_prompt, readonly=True, show_tools=False, phase="understanding")
+            else:
+                with spinner("Exploring codebase..."):
+                    summary = self._execute_with_tools(understanding_prompt, readonly=True, show_tools=False, phase="understanding")
+                console.print(f"\n[heading]Codebase Summary:[/heading]")
+                console.print(f"[muted]{summary}[/muted]\n")
+            
+            # Cache the summary for future tasks
+            if self._repo_path:
+                save_summary(self._repo_path, summary)
         
         # Emit summary event
         self._emit("summary", summary)
@@ -164,11 +200,12 @@ Example:
 
 Return ONLY valid JSON, no markdown, no explanation."""
         
+        # Use Sonnet for planning (smarter model)
         if self._headless:
-            response = chat(planning_prompt)
+            response = chat(planning_prompt, phase="planning")
         else:
             with spinner("Generating plan..."):
-                response = chat(planning_prompt)
+                response = chat(planning_prompt, phase="planning")
         
         # Parse JSON response
         try:

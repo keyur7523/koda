@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 import { MainLayout } from '../components/layouts/MainLayout'
@@ -15,9 +16,10 @@ import { useToast } from '../hooks/useToast'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export function DashboardPage() {
+  const location = useLocation()
   const { 
     agentState, stagedChanges, setStagedChanges, setPhase, reset, prResult, setPRResult,
-    currentTaskId, setTaskHistory, setCurrentTaskId, updateTaskStatus
+    currentTaskId, setTaskHistory, setCurrentTaskId, updateTaskStatus, setTask
   } = useAgentStore()
   const { runTask } = useAgentWebSocket()
   const { token, user } = useAuth()
@@ -62,6 +64,44 @@ export function DashboardPage() {
         console.error('Failed to fetch task history:', error)
       })
   }, [token, setTaskHistory])
+
+  // Restore approval state after GitHub OAuth redirect
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('restore') === 'true') {
+      const pendingStr = localStorage.getItem('pending_approval')
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr)
+          
+          // Check expiry (10 minutes)
+          if (Date.now() - pending.timestamp > 10 * 60 * 1000) {
+            localStorage.removeItem('pending_approval')
+            toast.warning('Approval session expired. Please run the task again.')
+            return
+          }
+          
+          // Restore state
+          if (pending.stagedChanges) setStagedChanges(pending.stagedChanges)
+          if (pending.task) setTask(pending.task)
+          if (pending.taskId) setCurrentTaskId(pending.taskId)
+          if (pending.repoUrl) selectRepo(pending.repoUrl)
+          setPhase('awaiting_approval')
+          
+          // Clean up
+          localStorage.removeItem('pending_approval')
+          
+          toast.success('GitHub connected! You can now create a PR.')
+        } catch (e) {
+          console.error('Failed to restore approval state:', e)
+          localStorage.removeItem('pending_approval')
+        }
+      }
+      
+      // Clean up URL
+      window.history.replaceState({}, '', '/dashboard')
+    }
+  }, [location.search, setStagedChanges, setTask, setCurrentTaskId, selectRepo, setPhase, toast])
 
   const isLoading = ['cloning', 'understanding', 'planning', 'executing'].includes(agentState.phase)
   const isIdle = agentState.phase === 'idle' && !agentState.task
@@ -178,6 +218,16 @@ export function DashboardPage() {
 
   // Alternative approval handlers for non-GitHub users
   const handleConnectGitHub = () => {
+    // Save current approval state to localStorage before redirect
+    const pendingApproval = {
+      taskId: currentTaskId,
+      stagedChanges: stagedChanges,
+      task: agentState.task,
+      repoUrl: selectedRepo,
+      timestamp: Date.now(),
+    }
+    localStorage.setItem('pending_approval', JSON.stringify(pendingApproval))
+    
     // Redirect to GitHub OAuth link flow with current token as state
     const linkUrl = `${API_URL}/api/auth/github/link?state=${encodeURIComponent(token || '')}`
     window.location.href = linkUrl

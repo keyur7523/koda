@@ -5,15 +5,21 @@ from .database import SessionLocal
 from .models import User, TokenUsage
 
 
+class TokenLimitExceeded(Exception):
+    """Raised when user exceeds their token limit."""
+    pass
+
+
 class TokenTracker:
     """Tracks token usage for a user across LLM calls."""
     
-    def __init__(self, user_id: int):
+    def __init__(self, user_id: int, check_limit: bool = True):
         self.user_id = user_id
         self.session_tokens = 0  # Tokens used in current session
+        self.check_limit = check_limit  # Whether to raise exception on limit
     
     def record_usage(self, input_tokens: int, output_tokens: int, task_description: str = ""):
-        """Record token usage after an LLM call."""
+        """Record token usage after an LLM call. Raises TokenLimitExceeded if over limit."""
         total = input_tokens + output_tokens
         self.session_tokens += total
         
@@ -33,7 +39,14 @@ class TokenTracker:
                 db.add(usage_record)
                 db.commit()
                 
-                print(f"Token usage recorded: +{total} (input={input_tokens}, output={output_tokens}), total={user.tokens_used}")
+                print(f"Token usage recorded: +{total} (input={input_tokens}, output={output_tokens}), total={user.tokens_used}/{user.tokens_limit}")
+                
+                # Check if limit exceeded DURING execution
+                if self.check_limit and user.tokens_used >= user.tokens_limit:
+                    raise TokenLimitExceeded(
+                        f"Free tier limit reached ({user.tokens_limit:,} tokens). "
+                        f"Add your API key to continue."
+                    )
         finally:
             db.close()
     

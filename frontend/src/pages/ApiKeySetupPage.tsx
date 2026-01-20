@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Key, Sparkles, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Key, ExternalLink, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
@@ -30,10 +30,6 @@ export function ApiKeySetupPage() {
     }
   }
 
-  const handleFreeTier = () => {
-    navigate('/dashboard')
-  }
-
   return (
     <div className="min-h-screen bg-koda-bg flex flex-col items-center justify-center px-4">
       {/* Logo */}
@@ -58,27 +54,20 @@ export function ApiKeySetupPage() {
                    rounded-2xl p-8 shadow-lg"
       >
         <h1 className="text-2xl font-bold text-koda-text text-center mb-2">
-          One last step
+          Connect your API key
         </h1>
         <p className="text-koda-text-muted text-center mb-8">
-          Choose how you want to use Koda
+          Enter your Anthropic API key to get started
         </p>
 
-        {/* Option A: Own API Key */}
+        {/* API Key Input */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Key size={18} className="text-koda-accent" />
-            <span className="font-medium text-koda-text">Use your own API key</span>
+            <span className="font-medium text-koda-text">Anthropic API Key</span>
           </div>
 
-          {/* API Key Input */}
           <div>
-            <label 
-              htmlFor="api-key" 
-              className="block text-sm font-medium text-koda-text mb-2"
-            >
-              Anthropic API Key
-            </label>
             <div className="relative">
               <input
                 id="api-key"
@@ -121,35 +110,21 @@ export function ApiKeySetupPage() {
                 Saving...
               </>
             ) : (
-              'Save & Continue'
+              'Continue'
             )}
           </button>
-        </div>
 
-        {/* Divider */}
-        <div className="flex items-center gap-4 my-8">
-          <div className="flex-1 h-px bg-koda-border" />
-          <span className="text-koda-text-muted text-sm">or</span>
-          <div className="flex-1 h-px bg-koda-border" />
-        </div>
-
-        {/* Option B: Free Tier */}
-        <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-2">
-            <Sparkles size={18} className="text-koda-accent" />
-            <span className="font-medium text-koda-text">Start with 50,000 free tokens</span>
-          </div>
-          <p className="text-sm text-koda-text-muted">
-            No API key required. Upgrade anytime.
-          </p>
-          <button
-            onClick={handleFreeTier}
-            className="w-full py-3 px-4 bg-koda-bg hover:bg-koda-surface-hover 
-                     text-koda-text font-medium border border-koda-border
-                     rounded-lg transition-colors"
+          {/* Get API Key Link */}
+          <a
+            href="https://console.anthropic.com/settings/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-sm text-koda-text-muted 
+                     hover:text-koda-accent transition-colors"
           >
-            Continue with Free Tier
-          </button>
+            <ExternalLink size={14} />
+            Get an API key at console.anthropic.com
+          </a>
         </div>
       </motion.div>
 
@@ -160,7 +135,7 @@ export function ApiKeySetupPage() {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="mt-8 text-koda-text-muted text-sm"
       >
-        You can change this later in settings
+        You can update your key anytime in settings
       </motion.p>
     </div>
   )

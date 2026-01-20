@@ -56,17 +56,38 @@ def get_provider(
     
     return SUPPORTED_PROVIDERS[provider_name](api_key=api_key, on_usage=on_usage)
 
-def chat(prompt: str, api_key: str | None = None, on_usage: Callable[[int, int], None] | None = None) -> str:
-    """Convenience function to chat using the configured provider."""
+def chat(
+    prompt: str,
+    api_key: str | None = None,
+    on_usage: Callable[[int, int], None] | None = None,
+    phase: str | None = None
+) -> str:
+    """Convenience function to chat using the configured provider.
+    
+    Args:
+        prompt: The prompt to send
+        api_key: Optional API key override
+        on_usage: Optional callback for token tracking
+        phase: Optional phase hint for model selection ("understanding", "planning", "executing")
+    """
     provider = get_provider(api_key=api_key, on_usage=on_usage)
-    return provider.chat(prompt)
+    return provider.chat(prompt, phase=phase)
 
 def chat_with_tools(
     messages: list,
     tools: list,
     api_key: str | None = None,
-    on_usage: Callable[[int, int], None] | None = None
+    on_usage: Callable[[int, int], None] | None = None,
+    phase: str | None = None
 ) -> dict:
-    """Chat with tool support using the configured provider."""
+    """Chat with tool support using the configured provider.
+    
+    Args:
+        messages: Conversation messages
+        tools: Tool schemas
+        api_key: Optional API key override
+        on_usage: Optional callback for token tracking
+        phase: Optional phase hint for model selection ("understanding", "planning", "executing")
+    """
     provider = get_provider(api_key=api_key, on_usage=on_usage)
-    return provider.chat_with_tools(messages, tools)
+    return provider.chat_with_tools(messages, tools, phase=phase)

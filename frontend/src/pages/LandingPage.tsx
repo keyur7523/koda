@@ -7,7 +7,7 @@ export function LandingPage() {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText('pip install koda-cli')
+    await navigator.clipboard.writeText('pip install git+https://github.com/keyur7523/koda.git#subdirectory=backend')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -40,7 +40,9 @@ export function LandingPage() {
             Code faster with <span className="text-koda-accent">Koda</span>
           </h1>
           <p className="text-koda-text-muted text-lg max-w-md mx-auto">
-            Your AI pair programmer that understands your codebase
+            Your AI pair programmer that understands your codebase.
+            <br />
+            <span className="text-sm">Bring your own Anthropic API key.</span>
           </p>
         </motion.div>
 
@@ -72,8 +74,8 @@ export function LandingPage() {
             {/* Code Snippet */}
             <div className="flex items-center gap-2 bg-koda-bg border border-koda-border 
                            rounded-lg p-3 font-mono text-sm">
-              <code className="flex-1 text-koda-text truncate">
-                <span className="text-koda-text-muted">$</span> pip install koda-cli
+              <code className="flex-1 text-koda-text truncate text-xs">
+                <span className="text-koda-text-muted">$</span> pip install git+https://github.com/keyur7523/koda.git#subdirectory=backend
               </code>
               <button
                 onClick={handleCopy}

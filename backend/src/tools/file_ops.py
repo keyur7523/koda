@@ -11,6 +11,10 @@ _change_manager: "ChangeManager | None" = None
 # Global working directory (set by orchestrator when working on a repo)
 _working_dir: Path = Path(".")
 
+# Token optimization: truncation limits
+MAX_FILE_LINES = 200
+MAX_LINE_LENGTH = 500
+
 
 def set_change_manager(manager: "ChangeManager | None") -> None:
     """Set the global change manager for staging writes."""
@@ -55,11 +59,37 @@ def _resolve_path(path: str) -> Path:
     return resolved
 
 
+def _truncate_content(content: str) -> str:
+    """Truncate large file content to save tokens.
+    
+    - Keeps first 100 and last 100 lines if file > 200 lines
+    - Truncates lines longer than 500 characters
+    """
+    lines = content.splitlines()
+    
+    # Truncate long files (keep head + tail)
+    if len(lines) > MAX_FILE_LINES:
+        head = lines[:100]
+        tail = lines[-100:]
+        truncated_count = len(lines) - 200
+        lines = head + [f"\n... ({truncated_count} lines truncated) ...\n"] + tail
+    
+    # Truncate long lines
+    lines = [
+        line[:MAX_LINE_LENGTH] + "..." if len(line) > MAX_LINE_LENGTH else line
+        for line in lines
+    ]
+    
+    return "\n".join(lines)
+
+
 def read_file(path: str, change_manager: "ChangeManager | None" = None) -> str:
     """Read and return contents of a file.
     
     If change_manager is provided (or global _change_manager is set),
     check for staged changes first and return staged content if available.
+    
+    Large files are automatically truncated to save tokens.
     """
     # Use provided change_manager or fall back to global
     manager = change_manager or _change_manager
@@ -82,7 +112,8 @@ def read_file(path: str, change_manager: "ChangeManager | None" = None) -> str:
     if not file_path.is_file():
         return f"Error: '{path}' is not a file."
     
-    return file_path.read_text()
+    content = file_path.read_text()
+    return _truncate_content(content)
 
 
 def write_file(path: str, content: str, change_manager: "ChangeManager | None" = None) -> str:

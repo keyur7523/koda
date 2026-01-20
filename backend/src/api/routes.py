@@ -253,17 +253,27 @@ async def websocket_task(
             await websocket.send_json({"type": "error", "data": {"message": "No task provided"}})
             return
         
-        # Get user's API key (if they have one)
+        # Refresh user from DB to get latest token count
+        db = SessionLocal()
+        try:
+            fresh_user = db.query(User).filter(User.id == user.id).first()
+            if not fresh_user:
+                await websocket.send_json({"type": "error", "data": {"message": "User not found"}})
+                return
+            user = fresh_user
+        finally:
+            db.close()
+        
+        # Get user's API key - REQUIRED
         user_api_key = get_user_api_key(user, provider="anthropic")
         
-        # Check token limits for free tier users
-        can_run, error_msg = check_token_limit(user)
-        if not can_run:
+        # Require API key to run tasks
+        if not user_api_key:
             await websocket.send_json({
                 "type": "error",
                 "data": {
-                    "message": error_msg,
-                    "code": "TOKEN_LIMIT_REACHED"
+                    "message": "Please add your Anthropic API key in Settings to run tasks.",
+                    "code": "API_KEY_REQUIRED"
                 }
             })
             return

@@ -44,7 +44,15 @@ export function AuthCallbackPage() {
   // After login, wait for user to be fetched then redirect
   useEffect(() => {
     if (!isLoading && user && isProcessing) {
-      // User fetched successfully - redirect based on has_api_key
+      // Check for pending approval (user was connecting GitHub during approval flow)
+      const pendingApproval = localStorage.getItem('pending_approval')
+      if (pendingApproval) {
+        // Has pending approval, go back to dashboard to restore
+        navigate('/dashboard?restore=true', { replace: true })
+        return
+      }
+      
+      // Normal flow - redirect based on has_api_key
       if (user.has_api_key) {
         navigate('/dashboard', { replace: true })
       } else {
