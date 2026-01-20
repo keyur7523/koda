@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  GitBranch, ExternalLink, X, ChevronDown, History, 
-  AlertCircle, Check, Loader2 
+import {
+  GitBranch, ExternalLink, X, History,
+  AlertCircle, Check, Loader2
 } from 'lucide-react'
 import type { SelectedRepo } from '../../hooks/useRepoSelection'
 import { validateGitHubUrl } from '../../hooks/useRepoSelection'
