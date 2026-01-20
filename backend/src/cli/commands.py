@@ -69,34 +69,41 @@ def save_api_key(key: str) -> None:
 
 @app.command()
 def run(
-    task: str = typer.Argument(..., help="Task to execute"),
+    task: list[str] = typer.Argument(..., help="Task to execute"),
     path: str = typer.Option(None, "--path", "-p", help="Path to repository (defaults to current directory)"),
 ):
     """Run a coding task on a codebase."""
+    # Join task words into a single string
+    task_str = " ".join(task)
+
+    if not task_str.strip():
+        console.print("[error]✗ Task cannot be empty[/error]")
+        raise typer.Exit(1)
+
     # Check for API key first
     api_key = get_api_key()
     if not api_key:
         console.print("[warning]No API key found.[/warning]")
         console.print("Run [accent]koda init[/accent] to set up your API key.\n")
         raise typer.Exit(1)
-    
+
     # Use current directory if no path specified
     repo_path = Path(path).resolve() if path else Path.cwd()
-    
+
     if not repo_path.is_dir():
         console.print(f"[error]✗ Directory not found: {repo_path}[/error]")
         raise typer.Exit(1)
-    
+
     # Change to repo directory
     original_dir = os.getcwd()
     os.chdir(repo_path)
-    
+
     try:
         print_banner()
         console.print(f"[muted]Working in: {repo_path}[/muted]\n")
         # Pass the API key to the agent
         agent = Agent(headless=False, api_key=api_key)
-        agent.run(task)
+        agent.run(task_str)
     finally:
         os.chdir(original_dir)
 
