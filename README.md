@@ -338,4 +338,3 @@ Real-time streaming via WebSocket provides:
 - [ ] Branch management and PR templates
 - [ ] Collaborative editing sessions
 - [ ] Local CLI mode with TUI interface
-
