@@ -202,10 +202,10 @@ Return ONLY valid JSON, no markdown, no explanation."""
         
         # Use Sonnet for planning (smarter model)
         if self._headless:
-            response = chat(planning_prompt, phase="planning")
+            response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning")
         else:
             with spinner("Generating plan..."):
-                response = chat(planning_prompt, phase="planning")
+                response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning")
         
         # Parse JSON response
         try:
