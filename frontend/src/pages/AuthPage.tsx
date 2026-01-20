@@ -2,7 +2,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Github, Mail } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
+if (!API_URL) {
+  throw new Error('VITE_API_URL is not set')
+}
 
 // Google icon SVG component (Lucide doesn't have a Google icon)
 function GoogleIcon({ size = 20 }: { size?: number }) {
@@ -144,4 +147,3 @@ export function AuthPage() {
     </div>
   )
 }
-

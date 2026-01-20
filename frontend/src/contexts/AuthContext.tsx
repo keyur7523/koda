@@ -1,7 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
+if (!API_URL) {
+  throw new Error('VITE_API_URL is not set')
+}
 const TOKEN_KEY = 'koda_token'
 
 // Types
@@ -149,4 +152,3 @@ export function useAuth() {
   }
   return context
 }
-

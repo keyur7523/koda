@@ -13,7 +13,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { approveChanges, fetchTaskHistory, createTask, updateTask } from '../api/client'
 import { useToast } from '../hooks/useToast'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL
+if (!API_URL) {
+  throw new Error('VITE_API_URL is not set')
+}
 
 export function DashboardPage() {
   const location = useLocation()

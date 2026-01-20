@@ -3,7 +3,10 @@ import { useAgentStore } from '../stores/agentStore'
 import { useToast } from './useToast'
 import { useAuth } from '../contexts/AuthContext'
 
-const WS_BASE_URL = 'ws://localhost:8000/api/ws/task'
+const WS_BASE_URL = import.meta.env.VITE_WS_URL
+if (!WS_BASE_URL) {
+  throw new Error('VITE_WS_URL is not set')
+}
 
 // Reconnection config
 const MAX_RECONNECT_ATTEMPTS = 3
