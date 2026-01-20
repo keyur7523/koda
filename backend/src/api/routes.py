@@ -257,7 +257,8 @@ async def websocket_task(
         return
     
     await websocket.accept()
-    
+    print(f"DEBUG: WebSocket accepted for user {user.id}")
+
     # Log authenticated connection
     print(f"WebSocket authenticated: user_id={user.id}, username={user.username}, has_api_key={bool(user.anthropic_api_key)}")
     
@@ -401,9 +402,13 @@ async def websocket_task(
         })
         
     except WebSocketDisconnect:
-        print(f"Client disconnected (user: {user.username})")
+        print(f"DEBUG: Client disconnected (user: {user.username})")
     except Exception as e:
-        await websocket.send_json({"type": "error", "data": {"message": str(e)}})
+        print(f"DEBUG: Exception in WebSocket handler: {type(e).__name__}: {e}")
+        try:
+            await websocket.send_json({"type": "error", "data": {"message": str(e)}})
+        except Exception:
+            pass  # Connection may already be closed
     finally:
         # Reset working directory
         set_working_dir(None)
