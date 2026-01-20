@@ -83,3 +83,14 @@ Desktop.ini
 # Project-specific
 # ===================
 .koda/
+*.db
+*.sqlite
+*.sqlite3
+
+# Build artifacts
+backend/dist/
+frontend/dist/
+
+# Test data
+test_repos/
+workspaces/

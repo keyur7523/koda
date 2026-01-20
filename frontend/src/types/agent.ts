@@ -1,5 +1,6 @@
 export type AgentPhase = 
   | 'idle'
+  | 'cloning'
   | 'understanding'
   | 'planning'
   | 'executing'

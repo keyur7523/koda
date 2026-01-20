@@ -1,4 +1,4 @@
-import { Loader2, Brain, ListTodo, Play, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { Loader2, Brain, ListTodo, Play, CheckCircle, AlertCircle, Clock, GitBranch } from 'lucide-react'
 import type { AgentPhase } from '../../types/agent'
 
 interface PhaseIndicatorProps {
@@ -7,6 +7,7 @@ interface PhaseIndicatorProps {
 
 const phaseConfig: Record<AgentPhase, { icon: React.ReactNode; label: string; color: string }> = {
   idle: { icon: <Clock size={16} />, label: 'Ready', color: 'text-koda-text-muted' },
+  cloning: { icon: <GitBranch size={16} />, label: 'Cloning Repository', color: 'text-cyan-500' },
   understanding: { icon: <Brain size={16} />, label: 'Understanding', color: 'text-blue-500' },
   planning: { icon: <ListTodo size={16} />, label: 'Planning', color: 'text-purple-500' },
   executing: { icon: <Play size={16} />, label: 'Executing', color: 'text-koda-accent' },

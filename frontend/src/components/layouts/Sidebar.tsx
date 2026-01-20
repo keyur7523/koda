@@ -1,5 +1,6 @@
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useAgentStore } from '../../stores/agentStore'
+import { TokenUsageIndicator } from '../ui/TokenUsageIndicator'
 
 interface SidebarProps {
   isOpen: boolean
@@ -75,6 +76,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 ))}
               </div>
             )}
+          </div>
+          
+          {/* Token Usage Indicator */}
+          <div className="border-t border-koda-border mt-auto pt-2">
+            <TokenUsageIndicator />
           </div>
         </div>
       </aside>

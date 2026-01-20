@@ -8,14 +8,36 @@ from ..tools.registry import get_tool_schemas
 from ..tools.file_ops import set_change_manager
 from ..cli.theme import console, spinner, print_summary
 from ..cli.diff_display import display_staged_changes
+from ..db.token_tracker import TokenTracker
 
 
 class Agent:
-    def __init__(self, headless: bool = False, callbacks: dict | None = None):
+    def __init__(
+        self,
+        headless: bool = False,
+        callbacks: dict | None = None,
+        api_key: str | None = None,
+        user_id: int | None = None,
+        task_description: str = "",
+        repo_path: str | None = None
+    ):
         self._state = AgentState(phase=Phase.IDLE)
         self._change_manager: ChangeManager | None = None
         self._headless = headless
         self._callbacks = callbacks or {}
+        self._api_key = api_key  # User's API key (None = use server's key)
+        self._user_id = user_id  # For token tracking
+        self._task_description = task_description
+        self._repo_path = repo_path  # Path to cloned repository
+        
+        # Set up token tracking for free tier users (no API key)
+        self._token_tracker: TokenTracker | None = None
+        self._on_usage = None
+        if user_id and not api_key:  # Free tier user
+            self._token_tracker = TokenTracker(user_id)
+            self._on_usage = lambda input_t, output_t: self._token_tracker.record_usage(
+                input_t, output_t, self._task_description
+            )
 
     @property
     def change_manager(self) -> ChangeManager | None:
@@ -42,7 +64,7 @@ class Agent:
             show_tools = False
         
         while True:
-            response = chat_with_tools(messages, tools)
+            response = chat_with_tools(messages, tools, api_key=self._api_key, on_usage=self._on_usage)
             
             if response.stop_reason == "end_turn":
                 # Extract final text response

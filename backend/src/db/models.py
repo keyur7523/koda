@@ -20,9 +20,12 @@ class User(Base):
     anthropic_api_key = Column(Text, nullable=True)
     openai_api_key = Column(Text, nullable=True)
     
+    # GitHub OAuth token (encrypted) - for creating PRs
+    github_access_token = Column(Text, nullable=True)
+    
     # Token tracking
     tokens_used = Column(Integer, default=0)
-    tokens_limit = Column(Integer, default=10000)  # Free tier: 10k tokens
+    tokens_limit = Column(Integer, default=50000)  # Free tier: 50k tokens (one-time)
     is_premium = Column(Boolean, default=False)
     
     # Timestamps
@@ -32,6 +35,7 @@ class User(Base):
     # Relationships
     repos = relationship("ConnectedRepo", back_populates="user")
     sessions = relationship("UserSession", back_populates="user")
+    task_history = relationship("TaskHistory", back_populates="user")
 
 class ConnectedRepo(Base):
     __tablename__ = "connected_repos"
@@ -73,4 +77,18 @@ class TokenUsage(Base):
     tokens_used = Column(Integer)
     task_description = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TaskHistory(Base):
+    __tablename__ = "task_history"
+
+    id = Column(String, primary_key=True)  # UUID
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    task = Column(Text, nullable=False)
+    repo_url = Column(String, nullable=True)
+    status = Column(String, default="running")  # running, complete, error
+    pr_url = Column(String, nullable=True)  # if PR was created
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="task_history")
 

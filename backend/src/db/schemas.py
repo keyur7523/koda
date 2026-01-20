@@ -18,6 +18,7 @@ class UserResponse(UserBase):
     is_premium: bool
     has_anthropic_key: bool
     has_openai_key: bool
+    has_github: bool  # Whether user has GitHub linked (can create PRs)
     created_at: datetime
 
     class Config:
@@ -35,6 +36,12 @@ class RepoResponse(RepoBase):
 
     class Config:
         from_attributes = True
+
+class ConnectRepoRequest(BaseModel):
+    github_repo_id: str
+    repo_name: str
+    repo_url: str
+    default_branch: Optional[str] = "main"
 
 # Auth schemas
 class Token(BaseModel):

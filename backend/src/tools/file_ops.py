@@ -8,11 +8,51 @@ if TYPE_CHECKING:
 # Global change manager reference (set by orchestrator)
 _change_manager: "ChangeManager | None" = None
 
+# Global working directory (set by orchestrator when working on a repo)
+_working_dir: Path = Path(".")
+
 
 def set_change_manager(manager: "ChangeManager | None") -> None:
     """Set the global change manager for staging writes."""
     global _change_manager
     _change_manager = manager
+
+
+def set_working_dir(path: Path | str | None) -> None:
+    """Set the global working directory for file operations.
+    
+    Args:
+        path: Path to use as root for all file operations.
+              None or "." resets to current directory.
+    """
+    global _working_dir
+    if path is None or str(path) == ".":
+        _working_dir = Path(".")
+    else:
+        _working_dir = Path(path)
+
+
+def get_working_dir() -> Path:
+    """Get the current working directory for file operations."""
+    return _working_dir
+
+
+def _resolve_path(path: str) -> Path:
+    """Resolve a path relative to the working directory.
+    
+    Prevents path traversal attacks by ensuring the resolved path
+    stays within the working directory.
+    """
+    # Convert to Path and resolve relative to working dir
+    resolved = (_working_dir / path).resolve()
+    
+    # Ensure path stays within working directory
+    try:
+        resolved.relative_to(_working_dir.resolve())
+    except ValueError:
+        raise ValueError(f"Path '{path}' would escape the working directory")
+    
+    return resolved
 
 
 def read_file(path: str, change_manager: "ChangeManager | None" = None) -> str:
@@ -31,7 +71,10 @@ def read_file(path: str, change_manager: "ChangeManager | None" = None) -> str:
                 return change.new_content
     
     # No staged change, read from disk
-    file_path = Path(path)
+    try:
+        file_path = _resolve_path(path)
+    except ValueError as e:
+        return f"Error: {e}"
     
     if not file_path.exists():
         return f"Error: File '{path}' not found."
@@ -51,15 +94,18 @@ def write_file(path: str, content: str, change_manager: "ChangeManager | None" =
     # Use provided change_manager or fall back to global
     manager = change_manager or _change_manager
     
+    try:
+        file_path = _resolve_path(path)
+    except ValueError as e:
+        return f"Error: {e}"
+    
     if manager is not None:
         # Stage the change instead of writing
-        file_path = Path(path)
         change_type = "MODIFY" if file_path.exists() else "CREATE"
         manager.stage_write(path, content)
         return f"Staged: {change_type} {path} ({len(content)} bytes)"
     
     # No change manager - write directly (legacy behavior)
-    file_path = Path(path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(content)
     return f"Successfully wrote to '{path}'."
@@ -74,7 +120,10 @@ def delete_file(path: str, change_manager: "ChangeManager | None" = None) -> str
     # Use provided change_manager or fall back to global
     manager = change_manager or _change_manager
     
-    file_path = Path(path)
+    try:
+        file_path = _resolve_path(path)
+    except ValueError as e:
+        return f"Error: {e}"
     
     if not file_path.exists():
         return f"Error: File '{path}' not found."
@@ -94,7 +143,10 @@ def delete_file(path: str, change_manager: "ChangeManager | None" = None) -> str
 
 def list_directory(path: str) -> str:
     """List contents of a directory. Returns formatted string."""
-    dir_path = Path(path)
+    try:
+        dir_path = _resolve_path(path)
+    except ValueError as e:
+        return f"Error: {e}"
     
     if not dir_path.exists():
         return f"Error: Directory '{path}' not found."
@@ -122,8 +174,6 @@ def search_code(query: str, file_pattern: str = "*") -> str:
     Skips venv/, __pycache__/, .git/, node_modules/.
     Limits results to 20 matches.
     """
-    import fnmatch
-    
     # Directories to skip
     skip_dirs = {"venv", "__pycache__", ".git", "node_modules", ".venv", "dist", "build"}
     
@@ -137,8 +187,9 @@ def search_code(query: str, file_pattern: str = "*") -> str:
                 return True
         return False
     
-    def search_in_file(file_path: Path) -> None:
+    def search_in_file(file_path: Path, rel_path: Path) -> None:
         """Search for query in a single file."""
+        nonlocal results
         try:
             content = file_path.read_text(errors="ignore")
             for line_num, line in enumerate(content.splitlines(), 1):
@@ -147,20 +198,26 @@ def search_code(query: str, file_pattern: str = "*") -> str:
                     display_line = line.strip()
                     if len(display_line) > 100:
                         display_line = display_line[:100] + "..."
-                    results.append(f"{file_path}:{line_num}: {display_line}")
+                    # Show relative path for cleaner output
+                    results.append(f"{rel_path}:{line_num}: {display_line}")
                     if len(results) >= max_results:
                         return
         except Exception:
             pass  # Skip files that can't be read
     
-    # Search recursively from current directory
-    root = Path(".")
+    # Search recursively from working directory
+    root = _working_dir.resolve()
     
     for file_path in root.rglob(file_pattern):
         if len(results) >= max_results:
             break
         if file_path.is_file() and not should_skip(file_path):
-            search_in_file(file_path)
+            # Get relative path for display
+            try:
+                rel_path = file_path.relative_to(root)
+            except ValueError:
+                rel_path = file_path
+            search_in_file(file_path, rel_path)
     
     if not results:
         return f"No matches found for '{query}' in {file_pattern} files."

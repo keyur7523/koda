@@ -11,6 +11,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import router
 from .auth import router as auth_router
+from .repos import router as repos_router
+from .tasks import router as tasks_router
 from ..db.database import init_db
 
 app = FastAPI(title="Koda API", version="1.0.0")
@@ -33,6 +35,8 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(repos_router, prefix="/api")
+app.include_router(tasks_router)  # Already has /api/tasks prefix
 
 @app.get("/")
 def root():
