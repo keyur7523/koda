@@ -57,36 +57,55 @@ class ApprovalResponse(BaseModel):
 _current_agent: Optional[Agent] = None
 _current_repo_info: Optional[dict] = None  # Store repo info for PR creation
 
-@router.post("/task")
-async def run_task(request: TaskRequest):
-    global _current_agent
-    _current_agent = Agent(headless=True)  # API mode: no CLI prompts
-    
-    # For now, run synchronously (we'll add streaming later)
-    try:
-        _current_agent.run(request.task)
+if False:
+    # Disabled: REST task execution endpoint. Use WebSocket /api/ws/task instead.
+    @router.post("/task")
+    async def run_task(
+        request: TaskRequest,
+        user: User = Depends(get_current_user),
+    ):
+        global _current_agent
+        # Require user API key for tasks
+        user_api_key = get_user_api_key(user, provider="anthropic")
+        if not user_api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="Please add your Anthropic API key in Settings to run tasks."
+            )
+
+        _current_agent = Agent(
+            headless=True,  # API mode: no CLI prompts
+            api_key=user_api_key,
+            user_id=user.id,
+            task_description=request.task,
+            repo_path=request.repo_path,
+        )
         
-        state = _current_agent.get_state()
-        changes = []
-        
-        if _current_agent.change_manager:
-            for change in _current_agent.change_manager.get_staged_changes():
-                changes.append({
-                    "path": change.path,
-                    "changeType": change.change_type.value,
-                    "newContent": change.new_content,
-                    "originalContent": change.original_content,
-                })
-        
-        return {
-            "phase": state.phase.value,
-            "task": state.task,
-            "plan": state.plan or [],
-            "error": state.error,
-            "changes": changes,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # For now, run synchronously (we'll add streaming later)
+        try:
+            _current_agent.run(request.task)
+            
+            state = _current_agent.get_state()
+            changes = []
+            
+            if _current_agent.change_manager:
+                for change in _current_agent.change_manager.get_staged_changes():
+                    changes.append({
+                        "path": change.path,
+                        "changeType": change.change_type.value,
+                        "newContent": change.new_content,
+                        "originalContent": change.original_content,
+                    })
+            
+            return {
+                "phase": state.phase.value,
+                "task": state.task,
+                "plan": state.plan or [],
+                "error": state.error,
+                "changes": changes,
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/approve", response_model=ApprovalResponse)
 async def approve_changes(

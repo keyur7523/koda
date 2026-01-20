@@ -188,6 +188,10 @@ export function SettingsPage() {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-ant-..."
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     className="w-full px-4 py-3 pr-12 bg-koda-bg border border-koda-border
                              rounded-lg text-koda-text placeholder:text-koda-text-muted
                              focus:outline-none focus:ring-2 focus:ring-koda-accent"
@@ -320,4 +324,3 @@ export function SettingsPage() {
     </MainLayout>
   )
 }
-
