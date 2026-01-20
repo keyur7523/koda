@@ -10,14 +10,15 @@ import { FadeIn, StaggerContainer, StaggerItem } from '../ui/Animations'
 interface AgentStreamProps {
   state: AgentState
   onExampleClick?: (task: string) => void
+  repoName?: string // e.g., "owner/repo"
 }
 
-export function AgentStream({ state, onExampleClick }: AgentStreamProps) {
+export function AgentStream({ state, onExampleClick, repoName }: AgentStreamProps) {
   // Idle state - show empty state
   if (state.phase === 'idle' && !state.task) {
     return onExampleClick ? (
       <FadeIn>
-        <EmptyState onExampleClick={onExampleClick} />
+        <EmptyState onExampleClick={onExampleClick} repoName={repoName} />
       </FadeIn>
     ) : null
   }

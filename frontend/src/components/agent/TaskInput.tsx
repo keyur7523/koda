@@ -5,11 +5,34 @@ interface TaskInputProps {
   onSubmit: (task: string) => void
   isLoading?: boolean
   disabled?: boolean
+  placeholder?: string
+  initialValue?: string // Pre-fill value from parent
+  onValueChange?: (value: string) => void // Notify parent of changes
 }
 
-export function TaskInput({ onSubmit, isLoading = false, disabled = false }: TaskInputProps) {
-  const [task, setTask] = useState('')
+export function TaskInput({ 
+  onSubmit, 
+  isLoading = false, 
+  disabled = false,
+  placeholder = 'Describe what you want to do... (Ctrl+Enter to send)',
+  initialValue = '',
+  onValueChange,
+}: TaskInputProps) {
+  const [task, setTask] = useState(initialValue)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Update internal state when initialValue changes from parent
+  useEffect(() => {
+    if (initialValue !== task) {
+      setTask(initialValue)
+      // Focus the textarea when a value is pre-filled
+      if (initialValue && textareaRef.current) {
+        textareaRef.current.focus()
+        // Move cursor to end
+        textareaRef.current.setSelectionRange(initialValue.length, initialValue.length)
+      }
+    }
+  }, [initialValue])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -20,10 +43,16 @@ export function TaskInput({ onSubmit, isLoading = false, disabled = false }: Tas
     }
   }, [task])
 
+  const handleChange = (value: string) => {
+    setTask(value)
+    onValueChange?.(value)
+  }
+
   const handleSubmit = () => {
     if (task.trim() && !isLoading && !disabled) {
       onSubmit(task.trim())
       setTask('')
+      onValueChange?.('')
     }
   }
 
@@ -41,9 +70,9 @@ export function TaskInput({ onSubmit, isLoading = false, disabled = false }: Tas
       <textarea
         ref={textareaRef}
         value={task}
-        onChange={(e) => setTask(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Describe what you want to do... (Ctrl+Enter to send)"
+        placeholder={placeholder}
         disabled={isLoading || disabled}
         rows={1}
         className="w-full px-4 py-3 bg-transparent resize-none outline-none
@@ -82,4 +111,3 @@ export function TaskInput({ onSubmit, isLoading = false, disabled = false }: Tas
     </div>
   )
 }
-

@@ -28,6 +28,15 @@ export function useToast() {
           color: '#1f2937' 
         },
       }),
+
+    warning: (message: string) => 
+      toast.warning(message, {
+        style: { 
+          background: '#fffbeb', 
+          border: '1px solid #f59e0b',
+          color: '#1f2937' 
+        },
+      }),
       
     loading: (message: string) => 
       toast.loading(message),

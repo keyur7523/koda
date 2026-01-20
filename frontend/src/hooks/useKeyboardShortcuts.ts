@@ -1,8 +1,6 @@
 import { useHotkeys } from 'react-hotkeys-hook'
-import { useAgentStore } from '../stores/agentStore'
 
 export function useKeyboardShortcuts() {
-  const { agentState } = useAgentStore()
 
   // Cmd/Ctrl + K to focus task input
   useHotkeys('mod+k', (e) => {

@@ -1,28 +1,29 @@
-import { Sparkles, FileCode, GitBranch, Shield } from 'lucide-react'
+import { Sparkles, FileText, TestTube, Bug, GitBranch } from 'lucide-react'
 
 interface EmptyStateProps {
   onExampleClick: (task: string) => void
+  repoName?: string // e.g., "owner/repo"
 }
 
 const exampleTasks = [
   {
-    icon: <FileCode size={18} />,
-    title: 'Create a file',
-    task: 'Create a hello.txt file with a welcome message',
+    icon: <FileText size={18} />,
+    title: 'Add a README',
+    task: 'Add a README.md file with project description, setup instructions, and usage examples',
   },
   {
-    icon: <GitBranch size={18} />,
-    title: 'Refactor code',
-    task: 'Add type hints to all functions in src/tools/file_ops.py',
+    icon: <TestTube size={18} />,
+    title: 'Add tests',
+    task: 'Add unit tests for the main module with good coverage of edge cases',
   },
   {
-    icon: <Shield size={18} />,
-    title: 'Add validation',
-    task: 'Add input validation to the TaskRequest model in the API',
+    icon: <Bug size={18} />,
+    title: 'Fix bugs',
+    task: 'Find and fix any obvious bugs or issues in the codebase',
   },
 ]
 
-export function EmptyState({ onExampleClick }: EmptyStateProps) {
+export function EmptyState({ onExampleClick, repoName }: EmptyStateProps) {
   return (
     <div className="py-8 md:py-16">
       {/* Hero */}
@@ -42,6 +43,14 @@ export function EmptyState({ onExampleClick }: EmptyStateProps) {
 
       {/* Example tasks */}
       <div className="max-w-lg mx-auto">
+        {/* Show which repo we're working on */}
+        {repoName && (
+          <div className="flex items-center justify-center gap-2 mb-4 text-sm text-koda-text-muted">
+            <GitBranch size={14} className="text-koda-accent" />
+            <span>Working on: <span className="font-medium text-koda-text">{repoName}</span></span>
+          </div>
+        )}
+        
         <p className="text-xs font-medium text-koda-text-muted uppercase tracking-wider mb-3">
           Try an example
         </p>
@@ -85,4 +94,3 @@ export function EmptyState({ onExampleClick }: EmptyStateProps) {
     </div>
   )
 }
-
