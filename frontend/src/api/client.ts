@@ -215,10 +215,21 @@ export async function fetchCurrentUser(token: string): Promise<AuthUser> {
 }
 
 export async function saveApiKey(
-  token: string, 
+  token: string,
   apiKey: string
 ): Promise<SaveApiKeyResponse> {
   return apiFetch<SaveApiKeyResponse>(`${API_BASE}/auth/api-key`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ api_key: apiKey }),
+  })
+}
+
+export async function saveOpenAiKey(
+  token: string,
+  apiKey: string
+): Promise<SaveApiKeyResponse> {
+  return apiFetch<SaveApiKeyResponse>(`${API_BASE}/auth/openai-key`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ api_key: apiKey }),
