@@ -4,24 +4,39 @@ import { useAuth } from '../../contexts/AuthContext'
 
 export function TokenUsageIndicator() {
   const { user } = useAuth()
-  
+
   if (!user) return null
-  
-  // Users with API key don't show usage (unlimited)
-  if (user.has_api_key) return null
-  
+
+  const hasApiKey = user.has_api_key
   const used = user.tokens_used
   const limit = user.tokens_limit
-  const percentage = Math.min(100, (used / limit) * 100)
-  const remaining = Math.max(0, limit - used)
-  
-  // Determine state
-  const isAtLimit = used >= limit
-  const isWarning = percentage >= 80 && !isAtLimit
-  
+
   // Format numbers
   const formatNumber = (n: number) => n.toLocaleString()
-  
+
+  // API key users: show total usage only (no limit)
+  if (hasApiKey) {
+    return (
+      <div className="px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-medium text-koda-text-muted flex items-center gap-1">
+            <Zap size={12} />
+            Tokens Used
+          </span>
+          <span className="text-xs text-koda-text-muted">
+            {formatNumber(used)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Free tier users: show usage with limit and progress bar
+  const percentage = Math.min(100, (used / limit) * 100)
+  const remaining = Math.max(0, limit - used)
+  const isAtLimit = used >= limit
+  const isWarning = percentage >= 80 && !isAtLimit
+
   return (
     <div className="px-3 py-2">
       {/* Header */}
@@ -34,7 +49,7 @@ export function TokenUsageIndicator() {
           {formatNumber(used)} / {formatNumber(limit)}
         </span>
       </div>
-      
+
       {/* Progress bar */}
       <div className="h-1.5 bg-koda-bg rounded-full overflow-hidden">
         <div
@@ -48,7 +63,7 @@ export function TokenUsageIndicator() {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      
+
       {/* Warning/Error message */}
       {isAtLimit && (
         <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
@@ -56,8 +71,8 @@ export function TokenUsageIndicator() {
             <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
             <div className="text-xs">
               <p className="text-red-500 font-medium">Limit reached</p>
-              <Link 
-                to="/setup" 
+              <Link
+                to="/setup"
                 className="text-koda-accent hover:underline"
               >
                 Add your API key to continue →
@@ -66,7 +81,7 @@ export function TokenUsageIndicator() {
           </div>
         </div>
       )}
-      
+
       {isWarning && !isAtLimit && (
         <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
           <div className="flex items-center gap-2">
