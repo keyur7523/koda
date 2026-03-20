@@ -33,11 +33,12 @@ class Agent:
         self._task_description = task_description
         self._repo_path = repo_path  # Path to cloned repository
         
-        # Set up token tracking for free tier users (no API key)
+        # Set up token tracking for all users
+        # Free tier users have limit enforcement; API key users track without limits
         self._token_tracker: TokenTracker | None = None
         self._on_usage = None
-        if user_id and not api_key:  # Free tier user
-            self._token_tracker = TokenTracker(user_id)
+        if user_id:
+            self._token_tracker = TokenTracker(user_id, check_limit=not api_key)
             self._on_usage = lambda input_t, output_t: self._token_tracker.record_usage(
                 input_t, output_t, self._task_description
             )
