@@ -1,25 +1,47 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Key, ExternalLink, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Key, ExternalLink, Loader2, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
-import { saveApiKey } from '../api/client'
+import { saveApiKey, saveOpenAiKey } from '../api/client'
+
+type Provider = 'anthropic' | 'openai'
+
+const PROVIDER_CONFIG = {
+  anthropic: {
+    label: 'Anthropic',
+    placeholder: 'sk-ant-...',
+    consoleUrl: 'https://console.anthropic.com/settings/keys',
+    consoleName: 'console.anthropic.com',
+    saveFn: saveApiKey,
+  },
+  openai: {
+    label: 'OpenAI',
+    placeholder: 'sk-...',
+    consoleUrl: 'https://platform.openai.com/api-keys',
+    consoleName: 'platform.openai.com',
+    saveFn: saveOpenAiKey,
+  },
+} as const
 
 export function ApiKeySetupPage() {
   const navigate = useNavigate()
   const { token, fetchUser } = useAuth()
+  const [provider, setProvider] = useState<Provider>('anthropic')
   const [apiKey, setApiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  const config = PROVIDER_CONFIG[provider]
 
   const handleSaveKey = async () => {
     if (!apiKey.trim() || !token) return
 
     setIsLoading(true)
     try {
-      await saveApiKey(token, apiKey.trim())
-      await fetchUser() // Refresh user state
+      await config.saveFn(token, apiKey.trim())
+      await fetchUser()
       toast.success('API key saved successfully!')
       navigate('/dashboard')
     } catch (error) {
@@ -28,6 +50,10 @@ export function ApiKeySetupPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSkip = () => {
+    navigate('/dashboard')
   }
 
   return (
@@ -50,21 +76,38 @@ export function ApiKeySetupPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="w-full max-w-md bg-koda-surface border border-koda-border 
+        className="w-full max-w-md bg-koda-surface border border-koda-border
                    rounded-2xl p-8 shadow-lg"
       >
         <h1 className="text-2xl font-bold text-koda-text text-center mb-2">
           Connect your API key
         </h1>
-        <p className="text-koda-text-muted text-center mb-8">
-          Enter your Anthropic API key to get started
+        <p className="text-koda-text-muted text-center mb-6">
+          Choose a provider and enter your API key
         </p>
+
+        {/* Provider Toggle */}
+        <div className="flex gap-2 mb-6 p-1 bg-koda-bg rounded-lg border border-koda-border">
+          {(['anthropic', 'openai'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => { setProvider(p); setApiKey('') }}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all
+                ${provider === p
+                  ? 'bg-koda-accent text-white shadow-sm'
+                  : 'text-koda-text-muted hover:text-koda-text'
+                }`}
+            >
+              {PROVIDER_CONFIG[p].label}
+            </button>
+          ))}
+        </div>
 
         {/* API Key Input */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Key size={18} className="text-koda-accent" />
-            <span className="font-medium text-koda-text">Anthropic API Key</span>
+            <span className="font-medium text-koda-text">{config.label} API Key</span>
           </div>
 
           <div>
@@ -74,10 +117,10 @@ export function ApiKeySetupPage() {
                 type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                className="w-full px-4 py-3 pr-12 bg-koda-bg border border-koda-border 
+                placeholder={config.placeholder}
+                className="w-full px-4 py-3 pr-12 bg-koda-bg border border-koda-border
                          rounded-lg text-koda-text placeholder:text-koda-text-muted
-                         focus:outline-none focus:ring-2 focus:ring-koda-accent 
+                         focus:outline-none focus:ring-2 focus:ring-koda-accent
                          focus:border-transparent transition-all"
               />
               <button
@@ -99,7 +142,7 @@ export function ApiKeySetupPage() {
           <button
             onClick={handleSaveKey}
             disabled={!apiKey.trim() || isLoading}
-            className="w-full py-3 px-4 bg-koda-accent hover:bg-koda-accent-hover 
+            className="w-full py-3 px-4 bg-koda-accent hover:bg-koda-accent-hover
                      text-white font-medium rounded-lg transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed
                      flex items-center justify-center gap-2"
@@ -116,15 +159,36 @@ export function ApiKeySetupPage() {
 
           {/* Get API Key Link */}
           <a
-            href="https://console.anthropic.com/settings/keys"
+            href={config.consoleUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-sm text-koda-text-muted 
+            className="flex items-center justify-center gap-2 text-sm text-koda-text-muted
                      hover:text-koda-accent transition-colors"
           >
             <ExternalLink size={14} />
-            Get an API key at console.anthropic.com
+            Get an API key at {config.consoleName}
           </a>
+
+          {/* Divider */}
+          <div className="relative my-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-koda-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-koda-surface px-2 text-koda-text-muted">or</span>
+            </div>
+          </div>
+
+          {/* Skip Button */}
+          <button
+            onClick={handleSkip}
+            className="w-full py-3 px-4 border border-koda-border text-koda-text-muted
+                     hover:text-koda-text hover:border-koda-text/30 font-medium rounded-lg
+                     transition-colors flex items-center justify-center gap-2"
+          >
+            Skip for now
+            <ArrowRight size={16} />
+          </button>
         </div>
       </motion.div>
 
@@ -140,4 +204,3 @@ export function ApiKeySetupPage() {
     </div>
   )
 }
-
