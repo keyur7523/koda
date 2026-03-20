@@ -1,5 +1,6 @@
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { useAgentStore } from '../../stores/agentStore'
+import { TokenUsageIndicator } from '../ui/TokenUsageIndicator'
 
 interface SidebarProps {
   isOpen: boolean
@@ -43,6 +44,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               ✕
             </button>
           </div>
+
+          {/* Token usage for free tier */}
+          <TokenUsageIndicator />
 
           {/* Task history */}
           <div className="flex-1 overflow-auto">

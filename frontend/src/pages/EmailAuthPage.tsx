@@ -333,7 +333,12 @@ export function EmailAuthPage() {
             {activeTab === 'signin' && (
               <div className="text-center mt-4">
                 <button
-                  onClick={() => console.log('Forgot password clicked')}
+                  onClick={() => {
+                    toast.info(
+                      'To reset your password, please contact support or sign in with GitHub/Google.',
+                      { duration: 5000 }
+                    )
+                  }}
                   className="text-sm text-koda-text-muted hover:text-koda-accent transition-colors"
                 >
                   Forgot password?

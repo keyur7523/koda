@@ -558,9 +558,31 @@ def _validate_anthropic_key(key: str) -> bool:
         return False
     if len(key) < 20 or len(key) > 200:
         return False
-    # Only allow alphanumeric, hyphens, and underscores
     allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
     return all(c in allowed_chars for c in key)
+
+
+def _validate_openai_key(key: str) -> bool:
+    """Validate OpenAI API key format.
+
+    Valid formats:
+    - sk-... (standard format)
+    - sk-proj-... (project-scoped keys)
+    """
+    key = key.strip()
+    if not key:
+        return False
+    if not key.startswith("sk-"):
+        return False
+    if len(key) < 20 or len(key) > 200:
+        return False
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+    return all(c in allowed_chars for c in key)
+
+
+class ApiKeyWithProviderRequest(BaseModel):
+    api_key: str
+    provider: str = "anthropic"  # "anthropic" or "openai"
 
 
 @router.post("/api-key")
@@ -570,7 +592,6 @@ async def save_api_key(
     db: Session = Depends(get_db),
 ):
     """Save user's Anthropic API key (encrypted at rest)."""
-    # Validate API key format
     api_key = request.api_key.strip()
     if not _validate_anthropic_key(api_key):
         raise HTTPException(
@@ -578,8 +599,27 @@ async def save_api_key(
             detail="Invalid API key format. Anthropic keys start with 'sk-ant-'"
         )
 
-    # Encrypt the API key before storing
     user.anthropic_api_key = encrypt(api_key)
+    db.commit()
+
+    return {"success": True}
+
+
+@router.post("/openai-key")
+async def save_openai_key(
+    request: ApiKeyRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Save user's OpenAI API key (encrypted at rest)."""
+    api_key = request.api_key.strip()
+    if not _validate_openai_key(api_key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid API key format. OpenAI keys start with 'sk-'"
+        )
+
+    user.openai_api_key = encrypt(api_key)
     db.commit()
 
     return {"success": True}

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { PublicOnlyRoute } from './components/PublicOnlyRoute'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { LandingPage } from './pages/LandingPage'
 import { AuthPage } from './pages/AuthPage'
 import { AuthCallbackPage } from './pages/AuthCallbackPage'
@@ -53,9 +54,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 
