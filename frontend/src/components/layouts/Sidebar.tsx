@@ -1,4 +1,4 @@
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, AlertCircle, Loader2, Clock } from 'lucide-react'
 import { useAgentStore } from '../../stores/agentStore'
 import { TokenUsageIndicator } from '../ui/TokenUsageIndicator'
 
@@ -7,13 +7,43 @@ interface SidebarProps {
   onClose: () => void
 }
 
+function timeAgo(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHr = Math.floor(diffMin / 60)
+  const diffDays = Math.floor(diffHr / 24)
+
+  if (diffMin < 1) return 'Just now'
+  if (diffMin < 60) return `${diffMin}m ago`
+  if (diffHr < 24) return `${diffHr}h ago`
+  if (diffDays === 1) return 'Yesterday'
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const taskHistory = useAgentStore((state) => state.taskHistory)
+  const currentTaskId = useAgentStore((state) => state.currentTaskId)
 
-  const statusIcon = {
-    running: <Loader2 size={14} className="animate-spin text-koda-accent" />,
-    complete: <CheckCircle size={14} className="text-koda-accent" />,
-    error: <AlertCircle size={14} className="text-red-500" />,
+  const getStatusIcon = (status: string, id: string) => {
+    if (status === 'running' && id === currentTaskId) {
+      return <Loader2 size={14} className="animate-spin text-koda-accent flex-shrink-0" />
+    }
+    if (status === 'running') {
+      // Stale running task (not the current one) — show as interrupted
+      return <Clock size={14} className="text-koda-text-muted flex-shrink-0" />
+    }
+    if (status === 'complete') {
+      return <CheckCircle size={14} className="text-koda-accent flex-shrink-0" />
+    }
+    return <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+  }
+
+  const getStatusLabel = (status: string, id: string) => {
+    if (status === 'running' && id === currentTaskId) return 'Running'
+    if (status === 'running') return 'Interrupted'
+    if (status === 'complete') return 'Complete'
+    return 'Error'
   }
 
   return (
@@ -45,7 +75,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </button>
           </div>
 
-          {/* Token usage for free tier */}
+          {/* Token usage */}
           <TokenUsageIndicator />
 
           {/* Task history */}
@@ -53,11 +83,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <h2 className="text-xs font-medium text-koda-text-muted uppercase tracking-wider mb-3">
               Recent Tasks
             </h2>
-            
+
             {taskHistory.length === 0 ? (
               <p className="text-sm text-koda-text-muted italic">No tasks yet</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {taskHistory.map((item) => (
                   <div
                     key={item.id}
@@ -65,13 +95,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                                transition-colors group"
                   >
                     <div className="flex items-start gap-2">
-                      {statusIcon[item.status]}
+                      <div className="mt-0.5">
+                        {getStatusIcon(item.status, item.id)}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-koda-text truncate">
+                        <p className="text-sm text-koda-text line-clamp-2 leading-snug">
                           {item.task}
                         </p>
-                        <p className="text-xs text-koda-text-muted">
-                          {item.timestamp.toLocaleTimeString()}
+                        <p className="text-xs text-koda-text-muted mt-0.5">
+                          {timeAgo(item.timestamp)}
+                          {item.status === 'running' && item.id !== currentTaskId && (
+                            <span className="ml-1 text-koda-text-muted">· {getStatusLabel(item.status, item.id)}</span>
+                          )}
                         </p>
                       </div>
                     </div>

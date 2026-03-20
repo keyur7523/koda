@@ -56,7 +56,8 @@ export function DashboardPage() {
         const formatted = history.map((item) => ({
           id: item.id,
           task: item.task,
-          status: item.status,
+          // Mark stale "running" tasks as error — they were interrupted
+          status: item.status === 'running' ? 'error' : item.status,
           timestamp: new Date(item.created_at),
           repoUrl: item.repo_url,
           prUrl: item.pr_url,
