@@ -1,42 +1,59 @@
 import { useState } from 'react'
-import { 
-  User, Key, LogOut, Trash2, Eye, EyeOff, 
-  Check, AlertTriangle, Loader2 
+import {
+  User, Key, LogOut, Trash2, Eye, EyeOff,
+  Check, AlertTriangle, Loader2
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { MainLayout } from '../components/layouts/MainLayout'
 import { useAuth } from '../contexts/AuthContext'
-import { saveApiKey, removeApiKey, deleteAccount } from '../api/client'
+import { saveApiKey, saveOpenAiKey, removeApiKey, deleteAccount } from '../api/client'
+
+type Provider = 'anthropic' | 'openai'
+
+const PROVIDER_CONFIG = {
+  anthropic: {
+    label: 'Anthropic',
+    placeholder: 'sk-ant-...',
+    saveFn: saveApiKey,
+  },
+  openai: {
+    label: 'OpenAI',
+    placeholder: 'sk-...',
+    saveFn: saveOpenAiKey,
+  },
+} as const
 
 export function SettingsPage() {
   const { user, token, logout, fetchUser } = useAuth()
-  
+
   // API Key state
   const [showApiKeyForm, setShowApiKeyForm] = useState(false)
+  const [provider, setProvider] = useState<Provider>('anthropic')
   const [apiKey, setApiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   // Delete account state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
-  
+
   if (!user || !token) return null
-  
+
   const hasApiKey = user.has_api_key
-  
+  const config = PROVIDER_CONFIG[provider]
+
   // Handlers
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) return
-    
+
     setIsLoading(true)
     try {
-      await saveApiKey(token, apiKey.trim())
+      await config.saveFn(token, apiKey.trim())
       await fetchUser()
       setApiKey('')
       setShowApiKeyForm(false)
-      toast.success('API key saved successfully!')
+      toast.success(`${config.label} API key saved successfully!`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save API key')
     } finally {
@@ -121,25 +138,25 @@ export function SettingsPage() {
         <section className="bg-koda-surface border border-koda-border rounded-xl p-6">
           <h2 className="text-lg font-semibold text-koda-text mb-4 flex items-center gap-2">
             <Key size={20} className="text-koda-accent" />
-            API Key
+            API Keys
           </h2>
-          
+
           {hasApiKey ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-koda-accent">
                 <Check size={18} />
                 <span>API key connected</span>
               </div>
-              
+
               <p className="text-sm text-koda-text-muted">
-                Your Anthropic API key is securely stored and encrypted.
+                Your API key is securely stored and encrypted.
               </p>
-              
+
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowApiKeyForm(!showApiKeyForm)}
-                  className="px-4 py-2 text-sm font-medium text-koda-text bg-koda-bg 
-                           border border-koda-border rounded-lg hover:bg-koda-surface-hover 
+                  className="px-4 py-2 text-sm font-medium text-koda-text bg-koda-bg
+                           border border-koda-border rounded-lg hover:bg-koda-surface-hover
                            transition-colors"
                 >
                   Update API Key
@@ -147,8 +164,8 @@ export function SettingsPage() {
                 <button
                   onClick={handleRemoveApiKey}
                   disabled={isLoading}
-                  className="px-4 py-2 text-sm font-medium text-red-500 bg-red-500/10 
-                           border border-red-500/20 rounded-lg hover:bg-red-500/20 
+                  className="px-4 py-2 text-sm font-medium text-red-500 bg-red-500/10
+                           border border-red-500/20 rounded-lg hover:bg-red-500/20
                            transition-colors disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Remove'}
@@ -158,13 +175,13 @@ export function SettingsPage() {
           ) : (
             <div className="space-y-4">
               <p className="text-koda-text-muted">
-                No API key connected. Add your Anthropic API key for unlimited usage.
+                No API key connected. Add your Anthropic or OpenAI API key to get started.
               </p>
-              
+
               {!showApiKeyForm && (
                 <button
                   onClick={() => setShowApiKeyForm(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-koda-accent 
+                  className="px-4 py-2 text-sm font-medium text-white bg-koda-accent
                            rounded-lg hover:bg-koda-accent-hover transition-colors"
                 >
                   Add API Key
@@ -172,7 +189,7 @@ export function SettingsPage() {
               )}
             </div>
           )}
-          
+
           {/* API Key Form */}
           <AnimatePresence>
             {showApiKeyForm && (
@@ -182,12 +199,29 @@ export function SettingsPage() {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4 space-y-3"
               >
+                {/* Provider Toggle */}
+                <div className="flex gap-2 p-1 bg-koda-bg rounded-lg border border-koda-border">
+                  {(['anthropic', 'openai'] as const).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => { setProvider(p); setApiKey('') }}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all
+                        ${provider === p
+                          ? 'bg-koda-accent text-white shadow-sm'
+                          : 'text-koda-text-muted hover:text-koda-text'
+                        }`}
+                    >
+                      {PROVIDER_CONFIG[p].label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="relative">
                   <input
                     type={showKey ? 'text' : 'password'}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-ant-..."
+                    placeholder={config.placeholder}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -205,12 +239,12 @@ export function SettingsPage() {
                     {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveApiKey}
                     disabled={!apiKey.trim() || isLoading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-koda-accent 
+                    className="px-4 py-2 text-sm font-medium text-white bg-koda-accent
                              rounded-lg hover:bg-koda-accent-hover transition-colors
                              disabled:opacity-50 disabled:cursor-not-allowed
                              flex items-center gap-2"
@@ -223,7 +257,7 @@ export function SettingsPage() {
                       setShowApiKeyForm(false)
                       setApiKey('')
                     }}
-                    className="px-4 py-2 text-sm font-medium text-koda-text-muted 
+                    className="px-4 py-2 text-sm font-medium text-koda-text-muted
                              hover:text-koda-text transition-colors"
                   >
                     Cancel
