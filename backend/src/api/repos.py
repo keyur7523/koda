@@ -12,12 +12,53 @@ from .auth import get_current_user
 router = APIRouter(prefix="/repos", tags=["repos"])
 
 
-@router.get("/github", response_model=List[dict])
+@router.get("/github")
 async def list_github_repos(user: User = Depends(get_current_user)):
-    """List user's GitHub repositories."""
-    # You'll need to store GitHub access token - for now, re-auth
-    # This is a simplification; production would store encrypted token
-    raise HTTPException(501, "GitHub token refresh not implemented yet")
+    """List user's GitHub repositories using stored access token."""
+    if not user.github_access_token:
+        raise HTTPException(400, "GitHub account not linked. Connect GitHub in Settings first.")
+
+    from ..utils.encryption import decrypt
+
+    try:
+        github_token = decrypt(user.github_access_token)
+    except ValueError:
+        raise HTTPException(400, "GitHub token could not be decrypted. Please re-link your GitHub account.")
+
+    # Fetch repos from GitHub API (up to 100, sorted by recent push)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.github.com/user/repos",
+            params={
+                "sort": "pushed",
+                "direction": "desc",
+                "per_page": 100,
+                "type": "owner",
+            },
+            headers={
+                "Authorization": f"Bearer {github_token}",
+                "Accept": "application/json",
+            },
+        )
+
+    if response.status_code == 401:
+        raise HTTPException(401, "GitHub token expired. Please re-link your GitHub account in Settings.")
+    if response.status_code != 200:
+        raise HTTPException(502, f"GitHub API error: {response.status_code}")
+
+    repos = response.json()
+    return [
+        {
+            "id": repo["id"],
+            "name": repo["full_name"],
+            "url": repo["html_url"],
+            "default_branch": repo["default_branch"],
+            "private": repo["private"],
+            "description": repo.get("description"),
+            "updated_at": repo.get("pushed_at"),
+        }
+        for repo in repos
+    ]
 
 
 @router.get("/", response_model=List[RepoResponse])

@@ -7,7 +7,6 @@ class Phase(Enum):
     UNDERSTANDING = "understanding"
     PLANNING = "planning"
     EXECUTING = "executing"
-    VERIFYING = "verifying"
     AWAITING_APPROVAL = "awaiting_approval"
     COMPLETE = "complete"
     ERROR = "error"
