@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from pathlib import Path
@@ -46,6 +46,29 @@ def get_db():
         db.close()
 
 def init_db():
-    """Initialize database tables."""
+    """Initialize database tables and add any missing columns."""
     Base.metadata.create_all(bind=engine)
+    _migrate_missing_columns()
+
+
+def _migrate_missing_columns():
+    """Add columns defined in models but missing from the database.
+
+    This handles the case where new columns are added to models after
+    the tables were already created (create_all only creates new tables,
+    not new columns on existing tables).
+    """
+    inspector = inspect(engine)
+    for table_name, table in Base.metadata.tables.items():
+        if not inspector.has_table(table_name):
+            continue
+        existing = {col["name"] for col in inspector.get_columns(table_name)}
+        for column in table.columns:
+            if column.name not in existing:
+                col_type = column.type.compile(engine.dialect)
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(f'ALTER TABLE "{table_name}" ADD COLUMN "{column.name}" {col_type}')
+                    )
+                print(f"Added missing column {table_name}.{column.name}")
 
