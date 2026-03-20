@@ -233,13 +233,17 @@ async def websocket_task(
         finally:
             db.close()
         
-        # Get user's API key - REQUIRED
+        # Get user's API key - try Anthropic first, then OpenAI
         user_api_key = get_user_api_key(user, provider="anthropic")
+        llm_provider = "anthropic"
+        if not user_api_key:
+            user_api_key = get_user_api_key(user, provider="openai")
+            llm_provider = "openai"
 
         # Require API key to run tasks
         if not user_api_key:
             # Check if user has a key saved but decryption failed
-            if user.anthropic_api_key:
+            if user.anthropic_api_key or user.openai_api_key:
                 # Key exists in DB but couldn't be decrypted
                 print(f"User {user.id} has encrypted key but decryption returned None")
                 await websocket.send_json({
@@ -254,7 +258,7 @@ async def websocket_task(
                 await websocket.send_json({
                     "type": "error",
                     "data": {
-                        "message": "Please add your Anthropic API key in Settings to run tasks.",
+                        "message": "Please add your API key (Anthropic or OpenAI) in Settings to run tasks.",
                         "code": "API_KEY_REQUIRED"
                     }
                 })
@@ -303,6 +307,7 @@ async def websocket_task(
         agent = Agent(
             headless=True,
             api_key=user_api_key,  # User's key or None (falls back to server's key)
+            provider=llm_provider,  # Which LLM provider to use
             user_id=user.id,  # For token tracking
             task_description=task,
             repo_path=str(repo_path) if repo_path else None,

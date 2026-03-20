@@ -20,13 +20,15 @@ class Agent:
         api_key: str | None = None,
         user_id: int | None = None,
         task_description: str = "",
-        repo_path: str | None = None
+        repo_path: str | None = None,
+        provider: str | None = None
     ):
         self._state = AgentState(phase=Phase.IDLE)
         self._change_manager: ChangeManager | None = None
         self._headless = headless
         self._callbacks = callbacks or {}
         self._api_key = api_key  # User's API key (None = use server's key)
+        self._provider = provider  # LLM provider name ("anthropic" or "openai")
         self._user_id = user_id  # For token tracking
         self._task_description = task_description
         self._repo_path = repo_path  # Path to cloned repository
@@ -66,7 +68,7 @@ class Agent:
             show_tools = False
         
         while True:
-            response = chat_with_tools(messages, tools, api_key=self._api_key, on_usage=self._on_usage, phase=phase)
+            response = chat_with_tools(messages, tools, api_key=self._api_key, on_usage=self._on_usage, phase=phase, provider=self._provider)
             
             if response.stop_reason == "end_turn":
                 # Extract final text response
@@ -202,10 +204,10 @@ Return ONLY valid JSON, no markdown, no explanation."""
         
         # Use Sonnet for planning (smarter model)
         if self._headless:
-            response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning")
+            response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning", provider=self._provider)
         else:
             with spinner("Generating plan..."):
-                response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning")
+                response = chat(planning_prompt, api_key=self._api_key, on_usage=self._on_usage, phase="planning", provider=self._provider)
         
         # Parse JSON response
         try:

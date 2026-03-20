@@ -25,15 +25,17 @@ from typing import Callable
 
 def get_provider(
     api_key: str | None = None,
-    on_usage: Callable[[int, int], None] | None = None
+    on_usage: Callable[[int, int], None] | None = None,
+    provider: str | None = None
 ) -> LLMProvider:
     """Return the appropriate LLM provider based on environment config.
-    
+
     Args:
         api_key: Optional API key to use instead of environment variable
         on_usage: Optional callback(input_tokens, output_tokens) for tracking
+        provider: Optional provider name override ("anthropic" or "openai")
     """
-    provider_name = os.getenv("LLM_PROVIDER", "anthropic").lower()
+    provider_name = (provider or os.getenv("LLM_PROVIDER", "anthropic")).lower()
     
     if provider_name not in SUPPORTED_PROVIDERS:
         supported = ", ".join(SUPPORTED_PROVIDERS.keys())
@@ -60,34 +62,38 @@ def chat(
     prompt: str,
     api_key: str | None = None,
     on_usage: Callable[[int, int], None] | None = None,
-    phase: str | None = None
+    phase: str | None = None,
+    provider: str | None = None
 ) -> str:
     """Convenience function to chat using the configured provider.
-    
+
     Args:
         prompt: The prompt to send
         api_key: Optional API key override
         on_usage: Optional callback for token tracking
         phase: Optional phase hint for model selection ("understanding", "planning", "executing")
+        provider: Optional provider name override ("anthropic" or "openai")
     """
-    provider = get_provider(api_key=api_key, on_usage=on_usage)
-    return provider.chat(prompt, phase=phase)
+    p = get_provider(api_key=api_key, on_usage=on_usage, provider=provider)
+    return p.chat(prompt, phase=phase)
 
 def chat_with_tools(
     messages: list,
     tools: list,
     api_key: str | None = None,
     on_usage: Callable[[int, int], None] | None = None,
-    phase: str | None = None
+    phase: str | None = None,
+    provider: str | None = None
 ) -> dict:
     """Chat with tool support using the configured provider.
-    
+
     Args:
         messages: Conversation messages
         tools: Tool schemas
         api_key: Optional API key override
         on_usage: Optional callback for token tracking
         phase: Optional phase hint for model selection ("understanding", "planning", "executing")
+        provider: Optional provider name override ("anthropic" or "openai")
     """
-    provider = get_provider(api_key=api_key, on_usage=on_usage)
-    return provider.chat_with_tools(messages, tools, phase=phase)
+    p = get_provider(api_key=api_key, on_usage=on_usage, provider=provider)
+    return p.chat_with_tools(messages, tools, phase=phase)
